@@ -1,9 +1,9 @@
 package main
 
 import (
-	"container/list"
 	"fmt"
 	"math"
+	"reflect"
 
 	slices "golang.org/x/exp/slices"
 )
@@ -20,7 +20,7 @@ func getManhattenDistance(a Point2D, b Point2D) int {
 type Node struct {
 	cost       int
 	board      []int
-	pathToNode list.List
+	pathToNode []string
 }
 type Heuristic func(root *Node) int
 type GoalPredicate func(node *Node) bool
@@ -45,6 +45,21 @@ var BOARD_MOVE = struct {
 	Bottom BoardMove
 	Left   BoardMove
 }{Top, Right, Bottom, Left}
+
+func boardMoveToString(move BoardMove) string {
+	switch move {
+	case 0:
+		return "top"
+	case 1:
+		return "right"
+	case 2:
+		return "bottom"
+	case 3:
+		return "left"
+	}
+
+	return ""
+}
 
 func getMoveIndex(boardSide int, currentIndex int, move BoardMove) int {
 	switch move {
@@ -100,12 +115,16 @@ func getSuccessors(boardSide int, node Node) []Node {
 			fmt.Println("Valid Move index: ", moveIndex)
 			var board = make([]int, boardLength)
 			copy(board, node.board)
+			var path []string
+			copy(path, node.pathToNode)
+			var boardMoveString = boardMoveToString(BoardMove(i))
+			path = append(path, boardMoveString)
 			board[zeroIndex] = board[moveIndex]
 			board[moveIndex] = 0
 			result = append(result, Node{
 				0, // TODO: Use manhatten to calculate cost!
 				board,
-				list.List{},
+				path,
 			})
 
 			fmt.Println("RES: ", result)
@@ -118,6 +137,14 @@ func getSuccessors(boardSide int, node Node) []Node {
 }
 
 type StepCost func(a *Node, b *Node) int
+
+func Map[T, U any](ts []T, f func(T) U) []U {
+    us := make([]U, len(ts))
+    for i := range ts {
+        us[i] = f(ts[i])
+    }
+    return us
+}
 
 func search(boardSide int, heuristic Heuristic, stepCost StepCost, isGoal GoalPredicate, path *[]*Node, currentCost int, threshold int) SearchResult {
 	var node = (*path)[len(*path)-1]
@@ -138,7 +165,17 @@ func search(boardSide int, heuristic Heuristic, stepCost StepCost, isGoal GoalPr
 	for i := 0; i < len(successors); i++ {
 		var successor = successors[i]
 
-		if !slices.Contains(*path, &successor) {
+		var isInPath = slices.IndexFunc(*path, func(element *Node) bool {
+			return reflect.DeepEqual((*element).board, successor.board)
+		}) != -1
+
+		fmt.Println("Search current path: ", Map(*path, func (node *Node) Node {
+			return *node;
+		}))
+		fmt.Println("Search successor: ", successor)
+		fmt.Println("is in path: ", isInPath)
+
+		if !isInPath {
 			*path = append(*path, &successor)
 			var searchResult = search(boardSide, heuristic, stepCost, isGoal, path, currentCost+stepCost(node, &successor), threshold)
 
@@ -158,7 +195,7 @@ func search(boardSide int, heuristic Heuristic, stepCost StepCost, isGoal GoalPr
 }
 
 type IDAResult struct {
-	path      list.List
+	path      []string
 	threshold int
 }
 
@@ -169,7 +206,7 @@ func idaStar(boardSide int, heuristic Heuristic, stepCost StepCost, isGoal GoalP
 	for {
 		var result = search(boardSide, heuristic, stepCost, isGoal, &path, 0, threshold)
 		if isGoal(result.node) {
-			fmt.Println("RESULT NODE:", result.node.board);
+			fmt.Println("RESULT NODE:", result.node.board)
 			return &IDAResult{result.node.pathToNode, threshold}
 		}
 
@@ -221,9 +258,10 @@ func main() {
 		return getManhattenDistance(boardToPoint2D(boardSide, &(*a).board), boardToPoint2D(boardSide, &(*b).board))
 	}
 
-	var root = &Node{0, board, *list.New()}
+	var root = &Node{0, board, []string{}}
 
 	var result = idaStar(boardSide, heuristic, stepCost, isGoal, root)
 
-	fmt.Println((*result).threshold)
+	fmt.Println("Threshold: ", (*result).threshold)
+	fmt.Printf("Path: %s", (*result).path)
 }

@@ -2,6 +2,12 @@
 
 The code should be able to solve a random sliding puzzle.
 
+Prerequisites: NodeJS 16+.
+
+Run: `npm start` in the folder to start the program.
+
+The implementation is in `main.ts`.
+
 ### Requirements
 [The game](https://appzaza.com/tile-slide-game) starts with a board consisting of blocks numbered 1 through N
 and one blank block represented by the number 0. The goal is to arrange
