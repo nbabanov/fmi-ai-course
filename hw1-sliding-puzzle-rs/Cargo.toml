@@ -1,0 +1,14 @@
+[package]
+name = "hw1-sliding-puzzle-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+strum_macros = "0.24.1"
+strum = "0.24.1"
+
+[[bin]]
+name = "hw1-sliding-puzzle-rs"
+path = "main.rs"
